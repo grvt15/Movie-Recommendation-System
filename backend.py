@@ -60,14 +60,17 @@ TMDB_IMG_ORIGINAL = "https://image.tmdb.org/t/p/original"
 
 # Some networks (antivirus HTTPS scanning, flaky wifi, corporate proxies) drop
 # outbound connections mid-request with a plain ConnectionResetError. Retry
-# transient failures a few times with backoff before surfacing a 502, instead
-# of failing on the first hiccup.
+# transient failures a couple of times with a short backoff before surfacing
+# an error — but keep the total worst-case time (attempts x per-attempt
+# timeout + backoff) safely under the frontend's own request timeout, or a
+# hung retry loop just turns into a "Read timed out" on the Streamlit side
+# instead of a clean error.
 _tmdb_session = requests.Session()
 _retry_strategy = Retry(
-    total=3,
-    connect=3,
-    read=3,
-    backoff_factor=0.5,
+    total=2,
+    connect=2,
+    read=2,
+    backoff_factor=0.3,
     status_forcelist=[429, 500, 502, 503, 504],
     allowed_methods=["GET"],
 )
@@ -164,7 +167,7 @@ def tmdb_get(path: str, params: Optional[dict] = None):
         return cached
 
     try:
-        resp = _tmdb_session.get(f"{TMDB_BASE}{path}", params=params, timeout=15)
+        resp = _tmdb_session.get(f"{TMDB_BASE}{path}", params=params, timeout=6)
     except requests.RequestException as e:
         raise HTTPException(
             status_code=502,
