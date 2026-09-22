@@ -49,6 +49,10 @@ from rapidfuzz import process
 from requests.adapters import HTTPAdapter
 from sklearn.metrics.pairwise import cosine_similarity
 from urllib3.util.retry import Retry
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("movie-backend")
